@@ -7,7 +7,7 @@ def uFunction(x, y):
 
 
 def fFunction(x, y):
-    return 12 * x * y * (y ** 2 + x ** 2)
+    return -12 * x * y * (y ** 2 + x ** 2)
 
 
 xlength, yLength = 1, 1
@@ -29,7 +29,7 @@ for i in range(yNods + 1):
     oldApproximation[i][xNods] = uFunctionGrid[i][xNods]
 newApproximation = [[0 for j in range(yNods + 1)] for i in range(xNods + 1)]
 
-for k in range(2):
+for k in range(1000):
     for i in range(1, yNods):
         for j in range(1, xNods):
             newApproximation[i][j] = (oldApproximation[i - 1][j] + oldApproximation[i + 1][j] +
@@ -56,5 +56,5 @@ print("uFunctionGrid")
 print(np.array(uFunctionGrid))
 
 
-# print(np.array(newApproximation) - np.array(uFunctionGrid))
+print(np.array(newApproximation) - np.array(uFunctionGrid))
 
