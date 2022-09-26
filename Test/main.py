@@ -119,7 +119,9 @@
 # print("Число итераций: ", m)
 # print("Спектральный радиус матрицы Н: ", ro)
 
-a = 1
-b = a
-b = 2
-print(b)
+class IterationMethodWithOptimalParameter:
+    def __init__(self):
+        self.eps = 1
+
+p = IterationMethodWithOptimalParameter()
+print(p.eps)
