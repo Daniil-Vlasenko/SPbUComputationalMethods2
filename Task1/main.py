@@ -1,9 +1,11 @@
 import math
 import numpy as np
+import pandas as pd
 
 np.set_printoptions(linewidth=np.inf)
 np.set_printoptions(precision=5)
 np.set_printoptions(suppress=True)
+
 
 class IterationMethodWithOptimalParameter:
     def __init__(self, eps, xLength, yLength, xNods, yNods):
@@ -23,6 +25,7 @@ class IterationMethodWithOptimalParameter:
         self.eigenvalueMin = None
         self.eigenvalueMax = None
         self.spectralRadius = None
+        self.informationTable = pd.DataFrame(columns=["rel.error", "sp.rad._k"])
 
     def uFunction(self, x, y):
         return 2 * x ** 3 * y ** 3
@@ -90,9 +93,7 @@ class IterationMethodWithOptimalParameter:
             for i in range(self.yNods + 1):
                 self.lastApproximation[i][0] = oldApproximation[i][0]
                 self.lastApproximation[i][self.xNods] = oldApproximation[i][self.xNods]
-            for i in range(self.yNods + 1):
-                for j in range(self.xNods + 1):
-                    oldApproximation[i][j] = self.lastApproximation[i][j]
+            oldApproximation = self.lastApproximation.copy()
 
 
 method = IterationMethodWithOptimalParameter(0.001, 1, 1, 5, 5)
@@ -117,4 +118,4 @@ print(method.lastApproximation)
 print("\nExact solution:")
 print(method.uGridMatrix)
 
-# method.table()
+
