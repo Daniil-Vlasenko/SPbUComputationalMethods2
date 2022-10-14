@@ -17,14 +17,16 @@ class IterationMethodWithOptimalParameter:
         self.xStep = xLength / xNods
         self.yStep = yLength / yNods
         self.numberOfIterations = 0
-        self.step = self.xStep  # Убрать это
+        self.step = self.xStep  # !
         self.firstApproximation = None
         self.lastApproximation = None
-        self.uGridMatrix = None
-        self.fGridMatrix = None
-        self.eigenvalueMin = None
-        self.eigenvalueMax = None
-        self.spectralRadius = None
+        self.uGridMatrix = self.uGrid(self.xNods, self.yNods)
+        self.fGridMatrix = self.fGrid(self.xNods, self.yNods)
+        self.eigenvalueMin = 8 / (self.step * self.step) * math.sin(math.pi * self.step / 2) * math.sin(
+            math.pi * self.step / 2)
+        self.eigenvalueMax = 8 / (self.step * self.step) * math.cos(math.pi * self.step / 2) * math.cos(
+            math.pi * self.step / 2)
+        self.spectralRadius = (self.eigenvalueMax - self.eigenvalueMin) / (self.eigenvalueMax + self.eigenvalueMin)
         self.informationTable = pd.DataFrame(columns=["rel.error", "sp.rad._k"])
 
     def uFunction(self, x, y):
@@ -55,17 +57,6 @@ class IterationMethodWithOptimalParameter:
                                      (uGridMatrix[i][j] - uGridMatrix[i][j - 1]) / (step ** 2)
         return LuResultGrid
 
-    # Функция определена для простейшего случая.
-    def eigenvalueCalculation(self):
-        self.eigenvalueMin = 8 / (self.step * self.step) * math.sin(math.pi * self.step / 2) * math.sin(
-            math.pi * self.step / 2)
-        self.eigenvalueMax = 8 / (self.step * self.step) * math.cos(math.pi * self.step / 2) * math.cos(
-            math.pi * self.step / 2)
-
-    def spectralRadiusCalculation(self):
-        self.eigenvalueCalculation()
-        self.spectralRadius = (self.eigenvalueMax - self.eigenvalueMin) / (self.eigenvalueMax + self.eigenvalueMin)
-
     def iterationMethodWithOptimalParameter(self):
         self.uGridMatrix = self.uGrid(self.xNods, self.yNods)
         self.fGridMatrix = self.fGrid(self.xNods, self.yNods)
@@ -93,8 +84,28 @@ class IterationMethodWithOptimalParameter:
             for i in range(self.yNods + 1):
                 self.lastApproximation[i][0] = oldApproximation[i][0]
                 self.lastApproximation[i][self.xNods] = oldApproximation[i][self.xNods]
-            oldApproximation = self.lastApproximation.copy()
 
+            # Формирование вывода.
+            rel_error = np.max(np.abs(self.lastApproximation - self.uGridMatrix)) / \
+                        np.max(np.abs(self.firstApproximation - self.uGridMatrix))
+            p_k1, p_k2 = 0, 0
+            if self.numberOfIterations < 3:
+                self.informationTable.loc[len(self.informationTable.index)] = [rel_error, None]
+            else:
+                p_k2 = p_k1
+                p_k1 = np.max(np.abs(self.lastApproximation - oldApproximation)) / \
+                       np.max(np.abs(oldApproximation - oldOldApproximation))
+                if self.eigenvalueMax == - self.eigenvalueMin:
+                    if self.numberOfIterations == 3:
+                        self.informationTable.loc[len(self.informationTable.index)] = [rel_error, None]
+                    else:
+                        self.informationTable.loc[len(self.informationTable.index)] = [rel_error, (p_k1 * p_k2) ** (1/2)]
+                else:
+                    self.informationTable.loc[len(self.informationTable.index)] = [rel_error, p_k1]
+            # Формирование вывода.
+
+            oldOldApproximation = oldApproximation.copy()
+            oldApproximation = self.lastApproximation.copy()
 
 method = IterationMethodWithOptimalParameter(0.001, 1, 1, 5, 5)
 method.iterationMethodWithOptimalParameter()
@@ -110,12 +121,14 @@ print("Measure of approximation.  ||F-AU_*||:",
 print("Discrepancy norm for U^0.  ||F-AU^0||:",
       np.max(np.abs(LuFirstGrid[1:-1, 1:-1] + method.fGridMatrix[1:-1, 1:-1])))
 print("Number of iterations:", method.numberOfIterations)
-method.spectralRadiusCalculation()
 print("Spectral radius:", method.spectralRadius)
+
+print("\nTable 1\n", method.informationTable)
 
 print("\nApproximate solution:")
 print(method.lastApproximation)
 print("\nExact solution:")
 print(method.uGridMatrix)
+
 
 
