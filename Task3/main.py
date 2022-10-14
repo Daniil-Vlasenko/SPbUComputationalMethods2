@@ -7,7 +7,7 @@ np.set_printoptions(precision=5)
 np.set_printoptions(suppress=True)
 
 
-class ZeidelMethod:
+class MethodWithChebyshevSetOfParameters:
     def __init__(self, eps, xLength, yLength, xNods, yNods):
         self.eps = eps
         self.xLength = xLength
@@ -28,6 +28,7 @@ class ZeidelMethod:
             math.pi * self.step / 2)
         self.spectralRadius = (self.eigenvalueMax - self.eigenvalueMin) / (self.eigenvalueMax + self.eigenvalueMin)
         self.informationTable = pd.DataFrame(columns=["rel.error", "sp.rad._k"])
+        self.parameters = self.parametersCalculation()
 
     def uFunction(self, x, y):
         return 2 * x ** 3 * y ** 3
@@ -36,6 +37,7 @@ class ZeidelMethod:
         return -12 * x * y * (y ** 2 + x ** 2)
 
     def terminationMethod(self):
+        # return self.numberOfIterations > 100
         return np.max(np.abs(self.lastApproximation - self.uGridMatrix)) / np.max(
             np.abs(self.firstApproximation - self.uGridMatrix)) < self.eps
 
@@ -57,7 +59,17 @@ class ZeidelMethod:
                                      (uGridMatrix[i][j] - uGridMatrix[i][j - 1]) / (step ** 2)
         return LuResultGrid
 
-    def ZeidelMethod(self):
+    def parametersCalculation(self):
+        result = []
+        theta = [1, 7, 3, 5]
+        for i in theta:
+            result.append(2 / (self.eigenvalueMax + self.eigenvalueMin + (self.eigenvalueMax - self.eigenvalueMin) *
+                               math.cos((i * math.pi) / 8)))
+        return result
+
+
+    def MethodWithChebyshevSetOfParameters(self):
+        global oldOldApproximation
         self.uGridMatrix = self.uGrid(self.xNods, self.yNods)
         self.fGridMatrix = self.fGrid(self.xNods, self.yNods)
 
@@ -72,12 +84,16 @@ class ZeidelMethod:
         self.lastApproximation = np.zeros((self.yNods + 1, self.xNods + 1))
 
         while not self.terminationMethod():
-            self.numberOfIterations += 1
             for i in range(1, self.yNods):
                 for j in range(1, self.xNods):
-                    self.lastApproximation[i][j] = (self.lastApproximation[i - 1][j] + oldApproximation[i + 1][j] +
-                                                    self.lastApproximation[i][j - 1] + oldApproximation[i][j + 1] +
-                                                    self.step ** 2 * self.fGridMatrix[i][j]) / 4
+                    self.lastApproximation[i][j] = oldApproximation[i][j] + \
+                             self.parameters[self.numberOfIterations % 4] * \
+                             ((oldApproximation[i + 1][j] - oldApproximation[i][j]) / (self.xStep ** 2) -
+                              (oldApproximation[i][j] - oldApproximation[i - 1][j]) / (self.xStep ** 2) +
+                              (oldApproximation[i][j + 1] - oldApproximation[i][j]) / (self.yStep ** 2) -
+                              (oldApproximation[i][j] - oldApproximation[i][j - 1]) / (self.yStep ** 2) +
+                              self.fGridMatrix[i][j])
+            self.numberOfIterations += 1
             for j in range(self.xNods + 1):
                 self.lastApproximation[0][j] = oldApproximation[0][j]
                 self.lastApproximation[self.yNods][j] = oldApproximation[self.yNods][j]
@@ -108,13 +124,13 @@ class ZeidelMethod:
             oldApproximation = self.lastApproximation.copy()
 
 
-method = ZeidelMethod(0.001, 1, 1, 5, 5)
-method.ZeidelMethod()
+method = MethodWithChebyshevSetOfParameters(0.001, 1, 1, 3, 3)
+method.MethodWithChebyshevSetOfParameters()
 
 LuResultGrid = method.LuGrid(method.uGridMatrix, method.step)
 LuFirstGrid = method.LuGrid(method.firstApproximation, method.step)
 
-print("Zeidel method. Variant 6.")
+print("Method with Chebyshev set of parameters. Variant 6.")
 print("eps:", method.eps, "\n")
 
 print("Measure of approximation.  ||F-AU_*||:",
