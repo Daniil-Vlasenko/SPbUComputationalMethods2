@@ -124,7 +124,7 @@ class MethodWithChebyshevSetOfParameters:
             oldApproximation = self.lastApproximation.copy()
 
 
-method = MethodWithChebyshevSetOfParameters(0.001, 1, 1, 3, 3)
+method = MethodWithChebyshevSetOfParameters(0.001, 1, 1, 5, 5)
 method.MethodWithChebyshevSetOfParameters()
 
 LuResultGrid = method.LuGrid(method.uGridMatrix, method.step)
@@ -138,7 +138,7 @@ print("Measure of approximation.  ||F-AU_*||:",
 print("Discrepancy norm for U^0.  ||F-AU^0||:",
       np.max(np.abs(LuFirstGrid[1:-1, 1:-1] + method.fGridMatrix[1:-1, 1:-1])))
 print("Number of iterations:", method.numberOfIterations)
-print("(Spectral radius)^2:", method.spectralRadius ** 2)
+print("Spectral radius:", method.spectralRadius)
 
 print("\nTable 1\n", method.informationTable)
 

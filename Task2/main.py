@@ -108,7 +108,7 @@ class ZeidelMethod:
             oldApproximation = self.lastApproximation.copy()
 
 
-method = ZeidelMethod(0.001, 1, 1, 5, 5)
+method = ZeidelMethod(0.00001, 1, 1, 5, 5)
 method.ZeidelMethod()
 
 LuResultGrid = method.LuGrid(method.uGridMatrix, method.step)
