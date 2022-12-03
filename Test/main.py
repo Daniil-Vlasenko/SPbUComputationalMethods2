@@ -1,2 +1,3 @@
-import sys
-print(sys.version)
+
+for i in range(10, 1, -1):
+    print(i)
