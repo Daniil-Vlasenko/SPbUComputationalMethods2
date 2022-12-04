@@ -12,9 +12,10 @@ class VariableDirectionMethod:
         self.eps = eps
         self.xLength = xLength
         self.yLength = yLength
-        self.length = self.xLength # !
+        self.length = self.xLength  # !
         self.xNods = xNods
         self.yNods = yNods
+        self.nods = self.xNods  # !
         self.xStep = xLength / xNods
         self.yStep = yLength / yNods
         self.numberOfIterations = 0
@@ -94,22 +95,28 @@ class VariableDirectionMethod:
             oldApproximation[i][0] = self.uGridMatrix[i][0]
             oldApproximation[i][self.xNods] = self.uGridMatrix[i][self.xNods]
         self.firstApproximation = oldApproximation.copy()
-        self.lastApproximation = np.zeros((self.yNods + 1, self.xNods + 1)) # Видимо не нуно хранить две последнии матрицы
+        self.lastApproximation = np.zeros(
+            (self.yNods + 1, self.xNods + 1))  # Видимо не нуно хранить две последнии матрицы
 
-        w_ = np.zeros((self.yNods + 1, self.xNods + 1))
-        w = np.zeros((self.yNods + 1, self.xNods + 1))
+        intermApproximation = np.zeros((self.yNods + 1, self.xNods + 1))
 
         while not self.terminationMethod():
-            #--- Вычисляем необходимые матрицы.
-            F = self.LuGrid(oldApproximation) + self.fGridMatrix
-            for i in range(1, self.xNods):
-                for j in range(1, self.yNods):
-                    w_[i][j] = (self.chi * w_[i - 1][j] + self.chi * w_[i][j - 1] + F[i][j]) / (1 + 2 * self.chi)
-            for i in range(self.xNods - 1, 0, -1):
-                for j in range(self.yNods - 1, 0, -1):
-                    w[i][j] = (self.chi * w[i + 1][j] + self.chi * w[i][j + 1] + w_[i][j]) / (1 + 2 * self.chi)
-            #---
-            self.lastApproximation = self.lastApproximation + self.tau * w
+            G1 = -oldApproximation - self.tau / 2 * (self.A2Grid(oldApproximation) + self.fGridMatrix)
+            for j in range(1, self.nods - 1):
+                # --- Решаем симтемы уравнений
+                diag_1 = [self.A for i in range(self.nods - 1)]
+                diag_1.append(0)
+                diag_2 = [-self.B for i in range(self.nods - 1)]
+                diag_2.insert(0, 1)
+                diag_2.append(1)
+                diag_3 = [self.C for i in range(self.nods - 1)]
+                diag_3.insert(0, 0)
+                system1 = np.diag(diag_1, -1) + np.diag(diag_2, 0) + np.diag(diag_3, 1)
+                G1Vector = G1[1:self.nods, j].tolist()
+                G1Vector.insert(0, oldApproximation[0][j])
+                G1Vector.append(oldApproximation[self.nods][j])
+                
+                # ---
             self.numberOfIterations += 1
             for j in range(self.xNods + 1):
                 self.lastApproximation[0][j] = oldApproximation[0][j]
@@ -118,6 +125,7 @@ class VariableDirectionMethod:
                 self.lastApproximation[i][0] = oldApproximation[i][0]
                 self.lastApproximation[i][self.xNods] = oldApproximation[i][self.xNods]
             oldApproximation = self.lastApproximation.copy()
+
 
 method = VariableDirectionMethod(0.001, 1, 1, 5, 5)
 method.VariableDirectionMethod()
