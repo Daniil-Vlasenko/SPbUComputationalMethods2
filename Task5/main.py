@@ -41,9 +41,9 @@ class VariableDirectionMethod:
         return -12 * x * y * (y ** 2 + x ** 2)
 
     def terminationMethod(self):
-        # return self.numberOfIterations > 100
-        return np.max(np.abs(self.lastApproximation - self.uGridMatrix)) / np.max(
-            np.abs(self.firstApproximation - self.uGridMatrix)) < self.eps
+        return self.numberOfIterations > 100
+        # return np.max(np.abs(self.lastApproximation - self.uGridMatrix)) / np.max(
+        #     np.abs(self.firstApproximation - self.uGridMatrix)) < self.eps
 
     def uGrid(self, xNods, yNods):
         return np.array([[self.uFunction(i / xNods, j / yNods) for j in range(yNods + 1)] for i in range(xNods + 1)])
@@ -114,16 +114,16 @@ class VariableDirectionMethod:
         intermApproximation = np.zeros((self.yNods + 1, self.xNods + 1))
 
         while not self.terminationMethod():
+            # --- Решаем системы уравнений
             G1 = -oldApproximation - self.tau / 2 * (self.A2Grid(oldApproximation) + self.fGridMatrix)
+            diag_1 = [self.A for i in range(self.nods - 1)]
+            diag_1.append(0)
+            diag_2 = [-self.B for i in range(self.nods - 1)]
+            diag_2.insert(0, 1)
+            diag_2.append(1)
+            diag_3 = [self.C for i in range(self.nods - 1)]
+            diag_3.insert(0, 0)
             for j in range(1, self.nods):
-                # --- Решаем симтемы уравнений
-                diag_1 = [self.A for i in range(self.nods - 1)]
-                diag_1.append(0)
-                diag_2 = [-self.B for i in range(self.nods - 1)]
-                diag_2.insert(0, 1)
-                diag_2.append(1)
-                diag_3 = [self.C for i in range(self.nods - 1)]
-                diag_3.insert(0, 0)
                 G1Vector = G1[1:self.nods, j].tolist()
                 G1Vector.insert(0, oldApproximation[0][j])
                 G1Vector.append(oldApproximation[self.nods][j])
@@ -131,14 +131,18 @@ class VariableDirectionMethod:
                 intermApproximation[:, j] = u_j.copy()
             intermApproximation[:, 0] = oldApproximation[:, 0].copy()
             intermApproximation[:, self.nods] = oldApproximation[:, self.nods].copy()
-                # ---
+            # ---
+            G2 = -intermApproximation - self.tau / 2 * (self.A1Grid(intermApproximation) + self.fGridMatrix)
+            for i in range(1, self.nods):
+                G2Vector = G2[i, 1:self.nods].tolist()
+                G2Vector.insert(0, oldApproximation[i][0])
+                G2Vector.append(oldApproximation[i][self.nods])
+                u_i = self.solvingSystemsTridiagonalMatrix(diag_1, diag_2, diag_3, G2Vector)
+                self.lastApproximation[i, :] = u_i.copy()
+            self.lastApproximation[0, :] = oldApproximation[0, :].copy()
+            self.lastApproximation[self.nods, :] = oldApproximation[self.nods, :].copy()
+            # ---
             self.numberOfIterations += 1
-            for j in range(self.xNods + 1):
-                self.lastApproximation[0][j] = oldApproximation[0][j]
-                self.lastApproximation[self.yNods][j] = oldApproximation[self.yNods][j]
-            for i in range(self.yNods + 1):
-                self.lastApproximation[i][0] = oldApproximation[i][0]
-                self.lastApproximation[i][self.xNods] = oldApproximation[i][self.xNods]
             oldApproximation = self.lastApproximation.copy()
 
 
