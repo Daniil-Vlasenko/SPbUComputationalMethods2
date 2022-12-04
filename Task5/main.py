@@ -91,7 +91,7 @@ class VariableDirectionMethod:
             t.append((A[i - 1] * t[i - 1] - G[i]) / (B[i] - A[i - 1] * s[i - 1]))
         y = [t[-1]]
         for i in range(len(B) - 2, -1, -1):
-            y.append(s[i] * y[len(B) - 2 - i] + t[i])
+            y.append(s[i] * y[-1] + t[i])
         y.reverse()
         return y
 
@@ -100,22 +100,19 @@ class VariableDirectionMethod:
         self.uGridMatrix = self.uGrid(self.xNods, self.yNods)
         self.fGridMatrix = self.fGrid(self.xNods, self.yNods)
 
-        oldApproximation = np.zeros((self.yNods + 1, self.xNods + 1))
+        self.lastApproximation = np.zeros((self.yNods + 1, self.xNods + 1))
         for j in range(self.xNods + 1):
-            oldApproximation[0][j] = self.uGridMatrix[0][j]
-            oldApproximation[self.yNods][j] = self.uGridMatrix[self.yNods][j]
+            self.lastApproximation[0][j] = self.uGridMatrix[0][j]
+            self.lastApproximation[self.yNods][j] = self.uGridMatrix[self.yNods][j]
         for i in range(self.yNods + 1):
-            oldApproximation[i][0] = self.uGridMatrix[i][0]
-            oldApproximation[i][self.xNods] = self.uGridMatrix[i][self.xNods]
-        self.firstApproximation = oldApproximation.copy()
-        self.lastApproximation = np.zeros(
-            (self.yNods + 1, self.xNods + 1))  # Видимо не нуно хранить две последнии матрицы
-
+            self.lastApproximation[i][0] = self.uGridMatrix[i][0]
+            self.lastApproximation[i][self.xNods] = self.uGridMatrix[i][self.xNods]
+        self.firstApproximation = self.lastApproximation.copy()
         intermApproximation = np.zeros((self.yNods + 1, self.xNods + 1))
 
         while not self.terminationMethod():
             # --- Решаем системы уравнений
-            G1 = -oldApproximation - self.tau / 2 * (self.A2Grid(oldApproximation) + self.fGridMatrix)
+            G1 = -self.lastApproximation - self.tau / 2 * (self.A2Grid(self.lastApproximation) + self.fGridMatrix)
             diag_1 = [self.A for i in range(self.nods - 1)]
             diag_1.append(0)
             diag_2 = [-self.B for i in range(self.nods - 1)]
@@ -125,26 +122,30 @@ class VariableDirectionMethod:
             diag_3.insert(0, 0)
             for j in range(1, self.nods):
                 G1Vector = G1[1:self.nods, j].tolist()
-                G1Vector.insert(0, oldApproximation[0][j])
-                G1Vector.append(oldApproximation[self.nods][j])
+                G1Vector.insert(0, self.uGridMatrix[0][j])
+                G1Vector.append(self.uGridMatrix[self.nods][j])
                 u_j = self.solvingSystemsTridiagonalMatrix(diag_1, diag_2, diag_3, G1Vector)
                 intermApproximation[:, j] = u_j.copy()
-            intermApproximation[:, 0] = oldApproximation[:, 0].copy()
-            intermApproximation[:, self.nods] = oldApproximation[:, self.nods].copy()
+            intermApproximation[:, 0] = self.uGridMatrix[:, 0].copy()
+            intermApproximation[:, self.nods] = self.uGridMatrix[:, self.nods].copy()
             # ---
             G2 = -intermApproximation - self.tau / 2 * (self.A1Grid(intermApproximation) + self.fGridMatrix)
             for i in range(1, self.nods):
                 G2Vector = G2[i, 1:self.nods].tolist()
-                G2Vector.insert(0, oldApproximation[i][0])
-                G2Vector.append(oldApproximation[i][self.nods])
+                G2Vector.insert(0, self.uGridMatrix[i][0])
+                G2Vector.append(self.uGridMatrix[i][self.nods])
                 u_i = self.solvingSystemsTridiagonalMatrix(diag_1, diag_2, diag_3, G2Vector)
                 self.lastApproximation[i, :] = u_i.copy()
-            self.lastApproximation[0, :] = oldApproximation[0, :].copy()
-            self.lastApproximation[self.nods, :] = oldApproximation[self.nods, :].copy()
+            self.lastApproximation[0, :] = self.uGridMatrix[0, :].copy()
+            self.lastApproximation[self.nods, :] = self.uGridMatrix[self.nods, :].copy()
             # ---
             self.numberOfIterations += 1
-            oldApproximation = self.lastApproximation.copy()
 
 
 method = VariableDirectionMethod(0.001, 1, 1, 5, 5)
 method.VariableDirectionMethod()
+
+print("\nApproximate solution:")
+print(method.lastApproximation)
+print("\nExact solution:")
+print(method.uGridMatrix)
