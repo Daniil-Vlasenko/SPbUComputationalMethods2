@@ -83,6 +83,19 @@ class VariableDirectionMethod:
                                      (uGridMatrix[i][j] - uGridMatrix[i][j - 1]) / (self.step ** 2)
         return A2ResultGrid
 
+    def solvingSystemsTridiagonalMatrix(self, A, B, C, G):
+        s = [C[0] / B[0]]
+        t = [-G[0] / B[0]]
+        for i in range(1, len(B) - 1):
+            s.append(C[i] / (B[i] - A[i - 1] * s[i - 1]))
+            t.append((A[i - 1] * t[i - 1] - G[i]) / (B[i] - A[i - 1] * s[i - 1]))
+        y = [t[-1]]
+        for i in range(len(B) - 2, -1, -1):
+            y.append(s[i] * y[len(B) - 2 - i] + t[i])
+        y.reverse()
+        return y
+
+
     def VariableDirectionMethod(self):
         self.uGridMatrix = self.uGrid(self.xNods, self.yNods)
         self.fGridMatrix = self.fGrid(self.xNods, self.yNods)
@@ -102,7 +115,7 @@ class VariableDirectionMethod:
 
         while not self.terminationMethod():
             G1 = -oldApproximation - self.tau / 2 * (self.A2Grid(oldApproximation) + self.fGridMatrix)
-            for j in range(1, self.nods - 1):
+            for j in range(1, self.nods):
                 # --- Решаем симтемы уравнений
                 diag_1 = [self.A for i in range(self.nods - 1)]
                 diag_1.append(0)
@@ -111,11 +124,13 @@ class VariableDirectionMethod:
                 diag_2.append(1)
                 diag_3 = [self.C for i in range(self.nods - 1)]
                 diag_3.insert(0, 0)
-                system1 = np.diag(diag_1, -1) + np.diag(diag_2, 0) + np.diag(diag_3, 1)
                 G1Vector = G1[1:self.nods, j].tolist()
                 G1Vector.insert(0, oldApproximation[0][j])
                 G1Vector.append(oldApproximation[self.nods][j])
-                
+                u_j = self.solvingSystemsTridiagonalMatrix(diag_1, diag_2, diag_3, G1Vector)
+                intermApproximation[:, j] = u_j.copy()
+            intermApproximation[:, 0] = oldApproximation[:, 0].copy()
+            intermApproximation[:, self.nods] = oldApproximation[:, self.nods].copy()
                 # ---
             self.numberOfIterations += 1
             for j in range(self.xNods + 1):
