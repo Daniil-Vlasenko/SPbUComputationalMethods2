@@ -75,7 +75,7 @@ class AlternatingTriangularIterativeMethod:
             oldApproximation[i][0] = self.uGridMatrix[i][0]
             oldApproximation[i][self.xNods] = self.uGridMatrix[i][self.xNods]
         self.firstApproximation = oldApproximation.copy()
-        self.lastApproximation = np.zeros((self.yNods + 1, self.xNods + 1)) # Видимо не нуно хранить две последнии матрицы
+        self.lastApproximation = np.zeros((self.yNods + 1, self.xNods + 1))
 
         w_ = np.zeros((self.yNods + 1, self.xNods + 1))
         w = np.zeros((self.yNods + 1, self.xNods + 1))
